@@ -1,0 +1,213 @@
+<style>
+    body {
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+    }
+
+    .notes {
+        margin-top: -10vh;
+    }
+
+    .bar {
+        height: 0px;
+        width: 100vw;
+        border-top: 3px solid gray;
+        margin-top: calc(20vh - 5px);
+    }
+
+    .note {
+        position: absolute;
+        bottom: 45vh;
+        height: 40vh;
+    }
+
+    #debug {
+        color: red;
+        font-weight: bold;
+        position: absolute;
+        top: 10px;
+        left: 20px;
+    }
+
+    .measureBar {
+        position: absolute;
+        width: 1px;
+        height: 100vh;
+        top: 0px;
+        border-left: 3px solid gray;
+    }
+</style>
+
+<body>
+    <div id="debug">
+        
+    </div>
+
+    <div class="notes">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+    </div>
+
+    <div class=playbar></div>
+
+    <script>
+    // settings
+    let scrollSpeed = 1.5;
+    
+    // debug values
+    let noteCount = 0;
+    let entityCount = 0;
+    let busySpawning = false;
+    let debugValue = null;
+    
+    const notePossibilities = [
+        {
+            name: "quater",
+            duration: 0.25,
+            width: 20
+        },
+
+        {
+            name: "half",
+            duration: 0.5,
+            width: 40
+        },
+
+        {
+            name: "doubleEight",
+            duration: 0.25,
+            width: 20
+        },
+
+        {
+            name: "quadSixteenth",
+            duration: 0.25,
+            width: 30
+        },
+
+        {
+            name: "14quadSixteenth",
+            duration: 0.25,
+            width: 30
+        },
+
+        {
+            name: "123quadSixteenth",
+            duration: 0.25,
+            width: 30
+        },
+
+        {
+            name: "124quadSixteenth",
+            duration: 0.25,
+            width: 30
+        },
+
+        {
+            name: "134quadSixteenth",
+            duration: 0.25,
+            width: 30
+        },
+    ];
+
+    function renderDebug() {
+        const indentation = "&nbsp;&nbsp;&nbsp;";
+        document.getElementById("debug").innerHTML = `
+        debug:<br>
+        ${indentation}note count: ${noteCount}<br />
+        ${indentation}entity count: ${entityCount}
+        `;
+    }
+
+    function createNote(type, offset=100) {
+        type = `notes/${type}Note.png`;
+        document.body.innerHTML += `<img src="${type}" class="note" style="left: ${offset}vw"/>`;
+        noteCount += 1;
+        entityCount += 1;
+    }
+
+    function updateAllNotes(type) {
+        const notes = document.getElementsByClassName("note");
+        const measureBars = document.getElementsByClassName("measureBar");
+
+        // update the notes
+        for (note of notes) {
+            // move the note
+            let position = Number(note.style.left.slice(0, -2));
+            const newPosition = `${position -= scrollSpeed}vw`;
+            note.style.left = newPosition;
+
+            // remove note if off screen
+            if (Number(note.style.left.slice(0, -2)) < -100) {
+                noteCount -= 1;
+                entityCount -= 1;
+                note.remove();
+            }
+        }
+
+        // update the measure lines
+        for (mb of measureBars) {
+            // move the measure bar
+            let position = Number(mb.style.left.slice(0, -2));
+            const newPosition = `${position -= scrollSpeed}vw`;
+            mb.style.left = newPosition;
+
+            // remove measure bar if off screen
+            if (Number(mb.style.left.slice(0, -2)) < -100) {
+                entityCount -= 1;
+                mb.remove();
+            }
+        }
+    }
+
+    function createRandomMeasure() {
+        busySpawning = true;
+        let measureLeft = 1;
+        let position = 110;
+
+        // create measure bar
+        document.body.innerHTML += `<div class="measureBar" style="left: ${position}vw"></div>`;
+        entityCount += 1;
+
+        position += 5;
+
+        // create some notes
+        while (measureLeft != 0) {
+            const note = notePossibilities[Math.floor(Math.random() * notePossibilities.length)];
+            
+            if (measureLeft - note.duration >= 0) {
+                createNote(note.name, position);
+                position += note.width;
+                measureLeft -= note.duration;
+            }
+        }
+
+        busySpawning = false;
+    }
+
+    setInterval(() => {
+        updateAllNotes();
+        renderDebug();
+
+        if (document.body.children.length == 5) {
+            createRandomMeasure();
+        }
+
+        const lastNote = document.body.children[document.body.children.length - 1];
+        const noteSource = lastNote.src.split("/")[lastNote.src.split("/").length - 1];
+        const matchedNote = notePossibilities.find(note => `${note.name}Note.png` === noteSource)
+        const noteOffset = matchedNote?.width ?? 0;
+        // const lastNoteWidth = lastNote.offsetWidth * 100 / window.innerWidth;
+        const lastNotePosition = Number(lastNote.style.left.slice(0, -2))
+
+        if (lastNotePosition < 100 - noteOffset && !busySpawning) {
+            createRandomMeasure()
+        }
+    }, 30)
+    </script>
+</body>
+
